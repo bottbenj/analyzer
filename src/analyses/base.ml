@@ -1872,6 +1872,14 @@ struct
       let new_value = VD.update_array_lengths (eval_rv (Analyses.ask_of_ctx ctx) ctx.global ctx.local) current_value v.vtype in
       set ~ctx:(Some ctx) (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval v.vtype new_value
 
+  let asm ctx = Asm.handle
+    ~discard_state:(fun _ -> D.bot ())
+    ~discard_expression:(fun lval ctx ->
+      let lval_t = Cilfacade.typeOfLval lval in
+      let lval_val = eval_lv (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval in
+      set ~ctx:(Some ctx) ~lval_raw:lval (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval_val lval_t `Bot)
+    ctx
+
   (**************************************************************************
    * Function calls
    **************************************************************************)
