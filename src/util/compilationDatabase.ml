@@ -19,7 +19,7 @@ let command_o_regexp = Str.regexp "-o +[^ ]+"
 let command_program_regexp = Str.regexp "^ *\\([^ ]+\\)"
 
 let load_and_preprocess ~all_cppflags filename =
-  let database_dir = Filename.dirname (GobFilename.absolute filename) in (* absolute before dirname to avoid . *)
+  let database_dir = Unix.realpath (Filename.dirname (GobFilename.absolute filename)) in (* absolute before dirname to avoid . *)
   let reroot =
     let original_path = GobConfig.get_string "exp.compdb.original-path" in
     if original_path <> "" then (
@@ -35,8 +35,8 @@ let load_and_preprocess ~all_cppflags filename =
   in
   let preprocessed_dir = GobFilename.absolute (GoblintDir.preprocessed ()) in (* absolute due to cwd changes *)
   let preprocess obj =
-    let file = if Filename.is_relative obj.file then Unix.realpath (Filename.concat obj.directory obj.file)
-      else obj.file in
+    let filepath = if Filename.is_relative obj.file then Filename.concat obj.directory obj.file else obj.file in
+    let file = Unix.realpath (filepath) in
     let extension = Filename.extension file in
     if extension = ".s" || extension = ".S" then
       None
