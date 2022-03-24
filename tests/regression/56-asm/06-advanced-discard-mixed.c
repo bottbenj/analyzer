@@ -9,7 +9,7 @@ int main()
   int y = 0;
 
   asm("nop"
-      : "r="(x), "r="(gx));
+      : "=r"(x), "=r"(gx));
 
   assert(x == 0); // UNKNOWN
   assert(y == 0);

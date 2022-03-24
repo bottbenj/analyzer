@@ -6,7 +6,7 @@ int y = 0;
 int main()
 {
   asm("nop"
-      : "r="(x));
+      : "=r"(x));
 
   assert(x == 0); // UNKNOWN
   assert(y == 0);

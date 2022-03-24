@@ -7,7 +7,7 @@ int z = 0;
 int main()
 {
   asm("nop"
-      : "r="(x), "r="(y));
+      : "=r"(x), "=r"(y));
 
   assert(x == 0); // UNKNOWN
   assert(y == 0); // UNKNOWN
