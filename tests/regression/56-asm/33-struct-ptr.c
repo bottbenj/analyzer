@@ -9,7 +9,7 @@ int main()
   };
 
   struct test v = {0, 0};
-  struct test *x = &x;
+  struct test *x = &v;
   int y;
 
   asm("nop"
