@@ -1872,14 +1872,6 @@ struct
       let new_value = VD.update_array_lengths (eval_rv (Analyses.ask_of_ctx ctx) ctx.global ctx.local) current_value v.vtype in
       set ~ctx:(Some ctx) (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval v.vtype new_value
 
-  let asm ctx = Asm.handle
-      ~discard_state:(fun _ -> D.top ())
-      ~discard_expression:(fun lval ctx ->
-          let lval_t = Cilfacade.typeOfLval lval in
-          let lval_val = eval_lv (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval in
-          set_savetop ~ctx ~lval_raw:lval (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval_val lval_t `Top)
-      ctx
-
   (**************************************************************************
    * Function calls
    **************************************************************************)
@@ -2371,6 +2363,16 @@ struct
     end;
     (* D.join ctx.local @@ *)
     ctx.local
+
+  let asm ctx = Asm.handle
+      ~discard_state:(fun _ -> D.top ())
+      ~discard_expression:(fun lval ctx ->
+          let lval_t = Cilfacade.typeOfLval lval in
+          let lval_val = eval_lv (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval in
+          set_savetop ~ctx ~lval_raw:lval (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval_val lval_t `Top)
+      ~read_expression:(fun exp ctx ->
+          invalidate ~ctx (Analyses.ask_of_ctx ctx) ctx.global ctx.local [exp])
+      ctx
 
   let event ctx e octx =
     let st: store = ctx.local in
