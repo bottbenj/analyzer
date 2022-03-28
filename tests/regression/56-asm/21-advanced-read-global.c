@@ -7,7 +7,7 @@ int main()
 {
   asm("nop"
       :
-      : "=r"(x));
+      : "r"(x));
 
   assert(x == 0);
   assert(y == 0);

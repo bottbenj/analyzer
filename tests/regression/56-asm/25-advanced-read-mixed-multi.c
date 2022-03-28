@@ -12,7 +12,7 @@ int main()
 
   asm("nop"
       :
-      : "=r"(x), "=r"(y), "=r"(gx), "=r"(gy));
+      : "r"(x), "r"(y), "r"(gx), "r"(gy));
 
   assert(x == 0);
   assert(y == 0);

@@ -10,7 +10,7 @@ int main()
 
   asm("nop"
       :
-      : "=r"(x), "=r"(gx));
+      : "r"(x), "r"(gx));
 
   assert(x == 0);
   assert(y == 0);
