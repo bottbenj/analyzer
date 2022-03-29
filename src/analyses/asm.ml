@@ -2,23 +2,28 @@ open Prelude.Ana
 open GobConfig
 open Analyses
 
-open struct
-  let ( let= ) (c, r) f = if c then r else f ()
+let ( let=? ) (c, r) f = match c with None -> r | Some x -> f x
 
-  let ( let=? ) (c, r) f = match c with None -> r | Some x -> f x
-end
+type constr = Read | ReadWrite | Write
+
+let check_constraint c =
+  match String.find c "=" with
+  | _ -> Write
+  | exception Not_found -> 
+    match String.find c "+" with 
+    | _ -> ReadWrite 
+    | exception Not_found -> Read
 
 let handle ~(discard_state : ('a, 'b, 'c, 'd) ctx -> 'a)
     ?(discard_expression : (CilType.Lval.t -> ('a, 'b, 'c, 'd) ctx -> 'a) option)
     ?(read_expression : CilType.Exp.t -> ('a, 'b, 'c, 'd) ctx -> 'a = fun _ ctx -> ctx.local)
+    ?(discard_globals : (('a, 'b, 'c, 'd) ctx -> 'a) option)
     (ctx : ('a, 'b, 'c, 'd) ctx) =
-  let (MyCFG.ASM (_, outs, ins)) = ctx.edge [@@warning "-8"] in
+  let (MyCFG.ASM asm) = ctx.edge [@@warning "-8"] in
   let apply f ctx = {ctx with local= f ctx} in
   let state = ctx in
   (* basic asm has no information we can use so discard all state to be sound *)
-  (* TODO: properly track what asm are basic *)
-  let is_basic = outs = [] && ins = [] in
-  let= _ = (is_basic, discard_state state) in
+  let=? _, outs, ins, clobber = (asm, discard_state state) in
   (* handle reads *)
   let state =
     List.fold_left
@@ -29,7 +34,24 @@ let handle ~(discard_state : ('a, 'b, 'c, 'd) ctx -> 'a)
   let=? discard_expression = (discard_expression, discard_state state) in
   let state =
     List.fold_left
-      (fun ctx (_, _, lval) -> apply (discard_expression lval) ctx)
+      (fun ctx (_, c, lval) ->
+         match check_constraint c with
+         | Read ->
+           warn "" |> ignore ;
+           ctx
+         | Write ->
+           apply (discard_expression lval) ctx
+         | ReadWrite ->
+           ctx
+           |> apply (read_expression (Cil.Lval lval))
+           |> apply (discard_expression lval) )
       state outs
+  in
+  (* handle memory clobbers *)
+  let state =
+    if List.mem "memory" clobber then
+      let=? discard_globals = (discard_globals, apply discard_state state) in
+      apply discard_globals state
+    else state
   in
   state.local

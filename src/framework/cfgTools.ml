@@ -288,7 +288,7 @@ let createCFG (file: file) =
             let edge_of_instr = function
               | Set (lval,exp,loc,eloc) -> eloc, Assign (lval, exp) (* TODO: eloc loc fallback if unknown here and If *)
               | Call (lval,func,args,loc,eloc) -> eloc, Proc (lval,func,args)
-              | Asm (attr,tmpl,out,inp,regs,loc) -> loc, ASM (tmpl,out,inp)
+              | Asm (attr,tmpl,out,inp,regs,loc) -> loc, ASM (Some (tmpl,out,inp,regs))
               | VarDecl (v, loc) -> loc, VDecl(v)
             in
             let edges = List.map edge_of_instr instrs in
