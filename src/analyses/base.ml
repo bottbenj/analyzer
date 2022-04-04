@@ -2372,6 +2372,7 @@ struct
           set_savetop ~ctx ~lval_raw:lval (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval_val lval_t `Top)
       ~read_expression:(fun exp ctx ->
           invalidate ~ctx (Analyses.ask_of_ctx ctx) ctx.global ctx.local [exp])
+      ~discard_globals:(fun ctx -> special_unknown_invalidate ctx (Analyses.ask_of_ctx ctx) ctx.global ctx.local dummyFunDec.svar [])
       ctx
 
   let event ctx e octx =
