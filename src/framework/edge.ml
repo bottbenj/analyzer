@@ -18,7 +18,7 @@ type t =
     * transferred to the function node! *)
   | Test of CilType.Exp.t * bool
   (** The true-branch or false-branch of a conditional exp *)
-  | ASM of (string list * asm_out * asm_in * string list) option
+  | ASM of string list * (asm_out * asm_in * string list) option
   (** Inline assembly statements, and the annotations for output and input
     * variables and clobbers or None if it is an unannotated basic asm statement. *)
   | VDecl of CilType.Varinfo.t

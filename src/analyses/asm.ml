@@ -19,11 +19,11 @@ let handle ~(discard_state : ('a, 'b, 'c, 'd) ctx -> 'a)
     ?(read_expression : CilType.Exp.t -> ('a, 'b, 'c, 'd) ctx -> 'a = fun _ ctx -> ctx.local)
     ?(discard_globals : (('a, 'b, 'c, 'd) ctx -> 'a) option)
     (ctx : ('a, 'b, 'c, 'd) ctx) =
-  let (MyCFG.ASM asm) = ctx.edge [@@warning "-8"] in
+  let (MyCFG.ASM (_, asm)) = ctx.edge [@@warning "-8"] in
   let apply f ctx = {ctx with local= f ctx} in
   let state = ctx in
   (* basic asm has no information we can use so discard all state to be sound *)
-  let=? _, outs, ins, clobber = (asm, discard_state state) in
+  let=? outs, ins, clobber = (asm, discard_state state) in
   (* handle reads *)
   let state =
     List.fold_left
