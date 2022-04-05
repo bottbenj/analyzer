@@ -2371,6 +2371,7 @@ struct
           let lval_val = eval_lv (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval in
           set_savetop ~ctx ~lval_raw:lval (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval_val lval_t `Top)
       ~read_expression:(fun exp ctx ->
+          if get_bool "exp.asm.readonly-inputs" then ctx.local else
           invalidate ~ctx (Analyses.ask_of_ctx ctx) ctx.global ctx.local [exp])
       ~discard_globals:(fun ctx -> special_unknown_invalidate ctx (Analyses.ask_of_ctx ctx) ctx.global ctx.local dummyFunDec.svar [])
       ctx

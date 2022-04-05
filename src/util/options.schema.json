@@ -1289,6 +1289,38 @@
             "Path to C preprocessor (cpp) to use. If empty, then automatically searched.",
           "type": "string",
           "default": ""
+        },
+        "asm": {
+          "title": "exp.asm",
+          "description": "Inline Assembly Analysis options",
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "exp.asm.enabled",
+              "description": "",
+              "type": "boolean",
+              "default": true
+            },
+            "basic-preserve-globals": {
+              "title": "exp.asm.basic-preserve-globals",
+              "description": "If enabled, do preserve globals across basic asm statements",
+              "type": "boolean",
+              "default": false
+            },
+            "memory-preserve-globals": {
+              "title": "exp.asm.memory-preserve-globals",
+              "description": "If enabled, do preserve globals across advanced asm statements with memory clobber annotation",
+              "type": "boolean",
+              "default": false
+            },
+            "readonly-inputs": {
+              "title": "exp.asm.readonly-inputs",
+              "description": "If enabled, do not consider changes through pointers given as inputs",
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

@@ -20,6 +20,7 @@ let handle ~(discard_state : ('a, 'b, 'c, 'd) ctx -> 'a)
     ?(discard_globals : (('a, 'b, 'c, 'd) ctx -> 'a) option)
     (ctx : ('a, 'b, 'c, 'd) ctx) =
   let (MyCFG.ASM (_, asm)) = ctx.edge [@@warning "-8"] in
+  let discard_state = if get_bool "exp.asm.basic-preserve-globals" then (fun ctx -> ctx.local) else discard_state in
   let apply f ctx = {ctx with local= f ctx} in
   let state = ctx in
   (* basic asm has no information we can use so discard all state to be sound *)
@@ -49,7 +50,7 @@ let handle ~(discard_state : ('a, 'b, 'c, 'd) ctx -> 'a)
   in
   (* handle memory clobbers *)
   let state =
-    if List.mem "memory" clobber then
+    if List.mem "memory" clobber && not (get_bool "exp.asm.memory-preserve-globals") then
       let=? discard_globals = (discard_globals, apply discard_state state) in
       apply discard_globals state
     else state
