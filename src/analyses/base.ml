@@ -1884,6 +1884,21 @@ struct
     in
     List.concat_map do_exp exps
 
+  let invalidate_core ~ctx inv_globs inv_exps =
+    ctx.emit (Events.InvalidateRaw {globals = inv_globs; exps = inv_exps});
+    let exps = List.map (fun (exp, mode) -> exp) inv_exps in
+    print_endline ("invalidate_core: " ^ string_of_int (List.length exps));
+    let exps = foldGlobals !Cilfacade.current_file (fun acc global ->
+        match global with
+        | GVar (vi, _, _) when not (is_static vi) ->
+          mkAddrOf (Var vi, NoOffset) :: acc
+        (* TODO: what about GVarDecl? *)
+        | _ -> acc
+      ) exps in
+    print_endline ("invalidate_core': " ^ string_of_int (List.length exps));
+    ctx.emit (Events.Invalidate {exps})
+
+
   let invalidate ?ctx ask (gs:glob_fun) (st:store) (exps: exp list): store =
     if M.tracing && exps <> [] then M.tracel "invalidate" "Will invalidate expressions [%a]\n" (d_list ", " d_plainexp) exps;
     if exps <> [] then M.info ~category:Imprecise "Invalidating expressions: %a" (d_list ", " d_plainexp) exps;
@@ -2364,14 +2379,35 @@ struct
     (* D.join ctx.local @@ *)
     ctx.local
 
-  let asm ctx = Asm.handle
+  let asm ctx =
+    let inv_globs, inv_exps = match ctx.edge with
+      | (MyCFG.ASM (_, None)) ->
+        (* asm basic instruction *)
+        (not (get_bool "sem.asm.basic-preserve-globals"), [])
+      | MyCFG.ASM (_, Some (outs, ins, clobbers)) ->
+        (* advanced asm instructions *)
+        (
+          List.mem "memory" clobbers && not (get_bool "sem.asm.memory-preserve-globals"),
+          List.append (if get_bool "sem.asm.readonly-inputs" then [] else List.map (fun (_, _, exp) -> exp, Events.InvalidateTransitive) ins)
+            (List.map (fun (_, c, lval) -> Lval lval, match String.find c "+" with 
+               | _ -> Events.InvalidateSelfAndTransitive
+               | exception Not_found -> Events.InvalidateSelf) outs)
+        )
+      | _ -> 
+        (* not an asm instruction at all ?? *)
+        (false, []) in
+    (if get_bool "sem.asm.enabled" then invalidate_core ~ctx inv_globs inv_exps);
+    ctx.local
+
+  let asm' ctx =
+    Asm.handle
       ~discard_state:(fun _ -> D.top ())
       ~discard_expression:(fun lval ctx ->
           let lval_t = Cilfacade.typeOfLval lval in
           let lval_val = eval_lv (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval in
           set_savetop ~ctx ~lval_raw:lval (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval_val lval_t `Top)
       ~read_expression:(fun exp ctx ->
-          if get_bool "exp.asm.readonly-inputs" then ctx.local else
+          if get_bool "sem.asm.readonly-inputs" then ctx.local else
           invalidate ~ctx (Analyses.ask_of_ctx ctx) ctx.global ctx.local [exp])
       ~discard_globals:(fun ctx -> special_unknown_invalidate ctx (Analyses.ask_of_ctx ctx) ctx.global ctx.local dummyFunDec.svar [])
       ctx
@@ -2391,6 +2427,22 @@ struct
     | Events.AssignSpawnedThread (lval, tid) ->
       (* TODO: is this type right? *)
       set ~ctx:(Some ctx) (Analyses.ask_of_ctx ctx) ctx.global ctx.local (eval_lv (Analyses.ask_of_ctx ctx) ctx.global ctx.local lval) (Cilfacade.typeOfLval lval) (`Thread (ValueDomain.Threads.singleton tid))
+    (* | Events.Invalidate {exps} ->
+        print_endline ("invalidating: " ^ string_of_int (List.length exps));
+        invalidate ~ctx (Analyses.ask_of_ctx ctx) ctx.global ctx.local exps *)
+    | Events.InvalidateRaw {globals; exps} ->
+      let getLval = function 
+        | Lval l -> l
+        | exp -> Mem exp, NoOffset
+      in
+      let ask = Analyses.ask_of_ctx ctx in
+      List.fold 
+        (fun local (exp, mode) ->
+           let local = if mode <> Events.InvalidateSelf then invalidate ~ctx ask ctx.global local [exp] else local in
+           let local = if mode <> Events.InvalidateTransitive then set_savetop ~ctx ask ctx.global local (eval_lv ask ctx.global ctx.local (getLval exp)) (Cilfacade.typeOf exp) `Top else local in
+           local
+        )
+        (if globals then special_unknown_invalidate ctx ask ctx.global ctx.local dummyFunDec.svar [] else ctx.local) exps
     | _ ->
       ctx.local
 end

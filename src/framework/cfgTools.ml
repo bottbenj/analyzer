@@ -288,7 +288,7 @@ let createCFG (file: file) =
             let edge_of_instr = function
               | Set (lval,exp,loc,eloc) -> eloc, Assign (lval, exp) (* TODO: eloc loc fallback if unknown here and If *)
               | Call (lval,func,args,loc,eloc) -> eloc, Proc (lval,func,args)
-              | Asm (attr,tmpl,Some(out,inp,regs),loc) -> loc, ASM (tmpl,Some (out,inp,regs))
+              | Asm (attr,tmpl,Some(out,inp,regs,gotos),loc) -> loc, ASM (tmpl,Some (out,inp,regs))
               | Asm (attr,tmpl,None,loc) -> loc, ASM (tmpl,None)
               | VarDecl (v, loc) -> loc, VDecl(v)
             in
